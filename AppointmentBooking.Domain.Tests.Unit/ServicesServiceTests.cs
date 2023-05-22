@@ -22,6 +22,21 @@ namespace AppointmentBooking.Domain.Tests.Unit
             Assert.True(!actual.Any());
         }
 
+        [Fact]
+        public async Task GetActiveServices_TwoActiveOneInactiveService_TwoServices()
+        {
+            // Arrange
+            var ctx = _ctxBldr.WithSingleService(true).WithSingleService(true).WithSingleService(false).Build();
+            _sut = new ServicesService(ctx);
+            var expected = 2;
+
+            // Act
+            var actual = await _sut.GetActiveServices();
+
+            // Assert
+            Assert.Equal(expected, actual.Count());
+        }
+
         public void Dispose()
         {
             _ctxBldr.Dispose();

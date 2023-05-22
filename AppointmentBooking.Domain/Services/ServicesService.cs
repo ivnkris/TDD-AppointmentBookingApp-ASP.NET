@@ -21,7 +21,7 @@ namespace AppointmentBooking.Domain.Services
         }
 
         public async Task<IEnumerable<Service>> GetActiveServices()
-            => await _context.Services!.ToArrayAsync();
+            => await _context.Services!.Where(x => x.IsActive).ToArrayAsync();
 
         public async Task<Service?> GetService(int id)
             => throw new NotImplementedException();
