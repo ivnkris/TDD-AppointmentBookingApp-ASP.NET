@@ -1,6 +1,5 @@
 ﻿using AppointmentBooking.Domain.DomainObjects;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using System.Data;
 

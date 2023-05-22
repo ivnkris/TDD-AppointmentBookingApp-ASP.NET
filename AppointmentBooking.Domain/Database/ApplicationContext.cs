@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AppointmentBooking.Domain.DomainObjects;
+using Microsoft.EntityFrameworkCore;
 
 namespace AppointmentBooking.Domain.Database
 {
