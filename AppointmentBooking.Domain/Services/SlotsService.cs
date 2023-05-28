@@ -39,6 +39,11 @@ namespace AppointmentBooking.Domain.Services
             {
                 throw new ArgumentException($"Employee with id {employeeId} not found");
             }
+            var shifts = _context.Shifts!.Where(x => x.EmployeeId == employeeId);
+            if (!shifts.Any())
+            {
+                return new Slots(Array.Empty<DaySlots>());
+            }
             return null;
         }
 
