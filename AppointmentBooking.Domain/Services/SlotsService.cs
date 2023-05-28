@@ -8,8 +8,6 @@ namespace AppointmentBooking.Domain.Services
     public interface ISlotsService
     {
         Task<Slots> GetAvailableSlotsForEmployee(int serviceId, int employeeId);
-
-        Task<Slots> GetCombinedAvailableSlots(int serviceId);
     }
 
     public class SlotsService : ISlotsService
@@ -39,23 +37,67 @@ namespace AppointmentBooking.Domain.Services
             {
                 throw new ArgumentException($"Employee with id {employeeId} not found");
             }
-            var shifts = _context.Shifts!.Where(x => x.EmployeeId == employeeId);
-            if (!shifts.Any())
+            var appointmentsMaxDay = GetEndOfOpenAppointments();
+
+            List<(DateTime From, DateTime To)> timeIntervals = new();
+
+            var shifts = _context.Shifts!.Where(x => x.EmployeeId == employeeId && x.Ending < appointmentsMaxDay && ((x.Starting <= _now && x.Ending > _now) || x.Starting > _now));
+
+            foreach (var shift in shifts)
             {
-                return new Slots(Array.Empty<DaySlots>());
+                var potentialAppointmentStart = shift.Starting;
+                var potentialAppointmentEnd = potentialAppointmentStart.AddMinutes(service.AppointmentTimeSpanInMin);
+
+                for (int increment = 0; potentialAppointmentEnd <= shift.Ending; increment+= _settings.RoundUpInMin)
+                {
+                    potentialAppointmentStart = shift.Starting.AddMinutes(increment);
+                    potentialAppointmentEnd = potentialAppointmentStart.AddMinutes(service.AppointmentTimeSpanInMin);
+                    if (potentialAppointmentEnd <= shift.Ending)
+                    {
+                        timeIntervals.Add((potentialAppointmentStart, potentialAppointmentEnd));
+                    }
+                }
             }
-            return null;
+
+            var appointments = _context.Appointments!.Where(x => x.EmployeeId == employeeId && x.Ending < appointmentsMaxDay && ((x.Starting <= _now && x.Ending > _now) || x.Starting > _now)).ToArray();
+
+            foreach (var appointment in appointments)
+            {
+                DateTime appointmentStartWithRest = appointment.Starting.AddMinutes(-_settings.RestInMin);
+                DateTime appointmentEndWithRest = appointment.Ending.AddMinutes(_settings.RestInMin);
+                timeIntervals.RemoveAll(x => IsPeriodIntersecting(x.From, x.To, appointmentStartWithRest, appointmentEndWithRest));
+            }
+
+            var uniqueDays = timeIntervals.DistinctBy(x => x.From.Date).Select(x => x.From.Date);
+
+            var daySlotsList = new List<DaySlots>();
+
+            foreach (var day in uniqueDays)
+            {
+                var startTimes = timeIntervals.Where(x => x.From.Date == day.Date).Select(x => x.From).ToArray();
+                var daySlots = new DaySlots(day, startTimes);
+                daySlotsList.Add(daySlots);
+            }
+
+            var slots = new Slots(daySlotsList.ToArray());
+
+            return slots;
         }
 
-        public async Task<Slots> GetCombinedAvailableSlots(int serviceId)
+        private DateTime GetEndOfOpenAppointments()
         {
-            throw new NotImplementedException();
+            return _now.Date.AddDays(_settings.OpenAppointmentInDays);
         }
 
         private DateTime RoundUpToNearest(DateTime dt)
         {
             var ticksInSpan = _roundingIntervalSpan.Ticks;
             return new DateTime((dt.Ticks + ticksInSpan - 1) / ticksInSpan * ticksInSpan, dt.Kind);
+        }
+
+        private bool IsPeriodIntersecting(DateTime fromT1, DateTime toT1, DateTime fromT2, DateTime toT2)
+        {
+            return fromT1 < toT2 && fromT2 < toT1;
         }
     }
 }
