@@ -34,6 +34,11 @@ namespace AppointmentBooking.Domain.Services
             {
                 throw new ArgumentException($"Service with id {serviceId} not found");
             }
+            var isEmpFound = await _context.Employees!.AnyAsync(x => x.Id == employeeId);
+            if (!isEmpFound)
+            {
+                throw new ArgumentException($"Employee with id {employeeId} not found");
+            }
             return null;
         }
 

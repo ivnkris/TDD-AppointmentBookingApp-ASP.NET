@@ -37,5 +37,19 @@ namespace AppointmentBooking.Domain.Tests.Unit
             // Assert
             Assert.IsType<ArgumentException>(exception);
         }
+
+        [Fact]
+        public async Task GetAvailableSlotsForEmployee_EmployeeIdNotFound_ArgumentException()
+        {
+            // Arrange
+            var ctx = _contextBuilder.WithSingleService(30).Build();
+            _sut = new SlotsService(ctx, _nowService, _settings);
+
+            // Act 
+            var exception = await Assert.ThrowsAsync<ArgumentException>(() => _sut.GetAvailableSlotsForEmployee(1, -1));
+
+            // Assert
+            Assert.IsType<ArgumentException>(exception);
+        }
     }
 }
